@@ -1,0 +1,20 @@
+# Secrets
+.env
+*.key
+*.pem
+*.token
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Docker
+docker/data/

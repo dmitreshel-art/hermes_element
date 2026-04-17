@@ -1,0 +1,7 @@
+.git
+.gitignore
+*.md
+LICENSE
+scripts/
+hermes-home/logs/*.log
+hermes-home/.env

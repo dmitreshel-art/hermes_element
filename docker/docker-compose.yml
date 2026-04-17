@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  element-helpdesk:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: hermes-element-helpdesk
+    restart: unless-stopped
+    env_file:
+      - ../hermes-home/.env
+    volumes:
+      # Persist knowledge base (read-only for agent, edit on host)
+      - ../hermes-home/knowledge:/home/hermes/knowledge:ro
+      # Persist memory and skills across restarts
+      - hermes-memory:/home/hermes/.hermes/memory
+      - hermes-skills:/home/hermes/.hermes/skills
+      # Persist session history
+      - hermes-sessions:/home/hermes/.hermes/sessions
+      # Persist logs
+      - ../hermes-home/logs:/home/hermes/logs
+    environment:
+      - HERMES_HOME=/home/hermes
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  hermes-memory:
+  hermes-skills:
+  hermes-sessions:
