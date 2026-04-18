@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   element-helpdesk:
     build:
@@ -8,22 +6,20 @@ services:
     container_name: hermes-element-helpdesk
     restart: unless-stopped
     env_file:
-      - ../hermes-home/.env
+      - path: ../hermes-home/.env
+        required: false
     volumes:
-      # Persist knowledge base (read-only for agent, edit on host)
-      - ../hermes-home/knowledge:/home/hermes/knowledge:ro
-      # Persist memory and skills across restarts
+      # Main portable Hermes home: config, prompts, KB, logs, .env
+      - ../hermes-home:/home/hermes
+      # Persist memory, skills and session history across restarts
       - hermes-memory:/home/hermes/.hermes/memory
       - hermes-skills:/home/hermes/.hermes/skills
-      # Persist session history
       - hermes-sessions:/home/hermes/.hermes/sessions
-      # Persist logs
-      - ../hermes-home/logs:/home/hermes/logs
     environment:
-      - HERMES_HOME=/home/hermes
-    # Health check
+      HERMES_HOME: /home/hermes
+    command: ["gateway", "run"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      test: ["CMD-SHELL", "test -f /home/hermes/config.yaml && test -d /home/hermes/knowledge"]
       interval: 60s
       timeout: 10s
       retries: 3

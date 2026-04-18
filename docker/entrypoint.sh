@@ -3,31 +3,35 @@ set -e
 
 HERMES_HOME="${HERMES_HOME:-/home/hermes}"
 CONFIG="${HERMES_HOME}/config.yaml"
+ENV_FILE="${HERMES_HOME}/.env"
 
 echo "=== Hermes Element Helpdesk ==="
 echo "HERMES_HOME: ${HERMES_HOME}"
 echo "Config: ${CONFIG}"
 
-# Verify config exists
 if [ ! -f "${CONFIG}" ]; then
     echo "ERROR: config.yaml not found at ${CONFIG}"
     exit 1
 fi
 
-# Verify .env exists
-if [ ! -f "${HERMES_HOME}/.env" ]; then
-    echo "WARNING: .env not found at ${HERMES_HOME}/.env"
-    echo "Copy .env.example to .env and fill in your values"
+if [ ! -f "${ENV_FILE}" ]; then
+    echo "ERROR: ${ENV_FILE} not found"
+    echo "Copy hermes-home/.env.example to hermes-home/.env and fill in real values before launch."
+    exit 1
 fi
 
-# Verify critical env vars
-for VAR in MATRIX_HOMESERVER OPENAI_API_KEY; do
-    if [ -z "${!VAR}" ] && ! grep -q "^${VAR}=" "${HERMES_HOME}/.env" 2>/dev/null; then
-        echo "WARNING: ${VAR} is not set"
+if grep -Eq 'CHANGE_ME|\*\*\*|matrix\.example\.org|@helpdesk:example\.org' "${ENV_FILE}"; then
+    echo "ERROR: ${ENV_FILE} still contains placeholder values."
+    echo "Fill in real Matrix and LLM credentials before launch."
+    exit 1
+fi
+
+for VAR in MATRIX_HOMESERVER MATRIX_USER_ID OPENAI_API_KEY; do
+    if ! grep -q "^${VAR}=" "${ENV_FILE}"; then
+        echo "WARNING: ${VAR} is missing from ${ENV_FILE}"
     fi
 done
 
-# List knowledge base files
 echo "Knowledge base files:"
 ls -1 "${HERMES_HOME}/knowledge/" 2>/dev/null || echo "  (empty)"
 
