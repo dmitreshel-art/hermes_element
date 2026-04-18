@@ -18,3 +18,12 @@ __pycache__/
 
 # Docker
 docker/data/
+
+# Hermes runtime artefacts (generated on first run, not to be committed)
+**/auth.json
+**/auth.lock
+**/state.db
+**/models_dev_cache.json
+**/sessions/
+**/.hermes/
+.compose.rendered
