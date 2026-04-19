@@ -26,4 +26,12 @@ docker/data/
 **/models_dev_cache.json
 **/sessions/
 **/.hermes/
+**/.skills_prompt_snapshot.json
+**/.update_check
+**/memories/
+**/sandboxes/
 .compose.rendered
+
+# Generated reports
+reports/
+**/reports/
