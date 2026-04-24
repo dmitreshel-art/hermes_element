@@ -3,71 +3,94 @@
 ## Цель
 
 Создать отдельный профиль Hermes, который:
-- живёт отдельно от твоего основного ассистента;
+- живёт отдельно от основного ассистента;
 - отвечает только на пользовательские вопросы по Element/Matrix;
-- использует отдельную базу знаний;
+- использует каноническую базу знаний из `knowledge/`;
 - не имеет лишних админских инструментов.
 
 ## Рекомендуемое имя профиля
 
 `element-helpdesk`
 
-## Шаги
+## Быстрый способ
 
-### 1. Создай профиль
-
-```bash
-/root/.hermes/venv/bin/hermes profile create element-helpdesk
-```
-
-### 2. Скопируй шаблоны
+Из корня репозитория выполните:
 
 ```bash
-cp /root/element-hermes-assistant/profile-template/config.yaml ~/.hermes/profiles/element-helpdesk/config.yaml
-cp /root/element-hermes-assistant/profile-template/.env.example ~/.hermes/profiles/element-helpdesk/.env
+./scripts/create_profile.sh element-helpdesk
 ```
 
-### 3. Отредактируй `.env`
+Скрипт:
+- создаст профиль, если его ещё нет;
+- скопирует `profile-template/config.yaml`;
+- создаст `.env` из `profile-template/.env.example`;
+- скопирует `SYSTEM_PROMPT.md` и `RAG_DESIGN.md`;
+- скопирует всю актуальную базу знаний из `knowledge/`.
 
-Заполни:
-- Matrix homeserver
-- bot user / password или access token
-- список разрешённых пользователей
-- API key провайдера модели
-- при необходимости encryption/recovery key
+## Ручные шаги после создания профиля
 
-### 4. Подготовь knowledge base
+### 1. Отредактировать `.env`
 
-Минимум заполни:
-- `/root/element-hermes-assistant/knowledge/seed-faq.md`
-- свои howto по login / notifications / device verification
-- свои troubleshooting по login / no notifications / cant decrypt
-- свои контакты эскалации
+Заполните в профиле:
+- Matrix homeserver;
+- bot user / password или access token;
+- список разрешённых пользователей;
+- API key провайдера модели;
+- при необходимости encryption/recovery key.
 
-### 5. Подключи системный промпт
+### 2. Проверить `config.yaml`
 
-Практически лучше хранить его как основной reference-файл владельца профиля:
-- `/root/element-hermes-assistant/SYSTEM_PROMPT.md`
+Проверьте:
+- модель и провайдера;
+- `agent.max_turns`;
+- настройки Matrix;
+- доступные toolsets.
+
+### 3. Проверить knowledge base
+
+Источник истины в репозитории:
+
+```text
+knowledge/
+```
+
+В профиль она копируется в:
+
+```text
+~/.hermes/profiles/element-helpdesk/knowledge/
+```
+
+Если меняете базу знаний, сначала правьте `knowledge/` в репозитории, затем снова запускайте `scripts/create_profile.sh` или вручную синхронизируйте профиль.
+
+### 4. Подключить системный промпт
+
+Основной reference-файл:
+
+```text
+SYSTEM_PROMPT.md
+```
 
 Варианты использования:
-1. сделать его базовым системным промптом через вашу кастомную интеграцию/обвязку;
+1. сделать его базовым системным промптом через кастомную интеграцию/обвязку;
 2. подмешивать его в startup wrapper при запуске агента;
-3. если используешь кастомный launcher для Hermes — передавать этот prompt как system override.
+3. если используется кастомный launcher для Hermes — передавать этот prompt как system override.
 
-### 6. Ограничь инструменты
+### 5. Ограничить инструменты
 
 Идея для user-support профиля:
-- оставить knowledge / file / session_search / clarify при необходимости;
-- не давать terminal, browser, admin и опасные инструменты в пользовательский контур.
+- оставить доступ к чтению базы знаний / file tools;
+- при необходимости оставить компактную memory и skills;
+- не давать terminal, browser, admin и опасные инструменты в пользовательский контур;
+- не включать cross-session recall, если есть риск подтянуть старые тестовые ответы.
 
-### 7. Настрой Matrix-канал
+### 6. Настроить Matrix-канал
 
-Вариант запуска:
+Рекомендуемый запуск:
 - отдельный бот-аккаунт Matrix;
 - ответы в DM;
 - отдельная комната поддержки при необходимости.
 
-Если делаешь общую комнату, безопаснее:
+Если делается общая комната, безопаснее:
 - thread-by-default;
 - не отвечать во всех комнатах подряд;
 - ограничить свободные комнаты списком support rooms.
@@ -75,14 +98,14 @@ cp /root/element-hermes-assistant/profile-template/.env.example ~/.hermes/profil
 ## Рекомендуемая модель работы
 
 ### MVP
-- бот отвечает только по FAQ, howto и troubleshooting;
+- бот отвечает только по FAQ, how-to и troubleshooting;
 - при сомнениях — эскалация в ИТ;
 - без самостоятельных действий в инфраструктуре.
 
 ### Следующий шаг
-- собирать логи unanswered questions;
-- раз в неделю обновлять FAQ;
-- выделить отдельный owner у knowledge base.
+- собирать unanswered questions;
+- регулярно обновлять FAQ;
+- назначить владельца базы знаний.
 
 ## Что проверить перед запуском
 
