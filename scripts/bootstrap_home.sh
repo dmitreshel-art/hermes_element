@@ -1,27 +1,57 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SRC_PROFILE="${1:-/root/.hermes/profiles/element-helpdesk}"
-DEST_ROOT="${2:-/root/element-hermes-assistant/docker-gateway/hermes-home}"
-HERMES_BIN="/root/.hermes/venv/bin/hermes"
+# Prepare an isolated HERMES_HOME for Docker/local testing.
+# The canonical KB lives in the project-level knowledge/ directory; the Docker
+# home receives a synchronized runtime copy.
 
-mkdir -p "$DEST_ROOT"
-mkdir -p "$DEST_ROOT/home" "$DEST_ROOT/logs" "$DEST_ROOT/sessions" "$DEST_ROOT/knowledge"
+SRC_PROFILE="${1:-}"
+DEST_ROOT="${2:-}"
+HERMES_BIN="${HERMES_BIN:-/root/.hermes/venv/bin/hermes}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+CANONICAL_KB="$PROJECT_ROOT/knowledge"
 
-cp "$SRC_PROFILE/config.yaml" "$DEST_ROOT/config.yaml"
-cp "$SRC_PROFILE/.env" "$DEST_ROOT/.env"
-cp "$SRC_PROFILE/SYSTEM_PROMPT.md" "$DEST_ROOT/SYSTEM_PROMPT.md"
-cp "$SRC_PROFILE/RAG_DESIGN.md" "$DEST_ROOT/RAG_DESIGN.md"
-cp -r "$SRC_PROFILE/knowledge/." "$DEST_ROOT/knowledge/"
+if [[ -z "$DEST_ROOT" ]]; then
+  DEST_ROOT="$PROJECT_ROOT/hermes-home"
+fi
 
-# SOUL.md — реально используемый system prompt Hermes внутри отдельного HERMES_HOME.
-cp "$SRC_PROFILE/SYSTEM_PROMPT.md" "$DEST_ROOT/SOUL.md"
+if [[ ! -d "$CANONICAL_KB" ]]; then
+  echo "ERROR: canonical knowledge directory not found: $CANONICAL_KB" >&2
+  exit 1
+fi
+
+mkdir -p "$DEST_ROOT" "$DEST_ROOT/home" "$DEST_ROOT/logs" "$DEST_ROOT/sessions" "$DEST_ROOT/knowledge"
+
+if [[ -n "$SRC_PROFILE" ]]; then
+  cp "$SRC_PROFILE/config.yaml" "$DEST_ROOT/config.yaml"
+  cp "$SRC_PROFILE/.env" "$DEST_ROOT/.env"
+  cp "$SRC_PROFILE/SYSTEM_PROMPT.md" "$DEST_ROOT/SYSTEM_PROMPT.md"
+  cp "$SRC_PROFILE/RAG_DESIGN.md" "$DEST_ROOT/RAG_DESIGN.md"
+  cp "$SRC_PROFILE/SYSTEM_PROMPT.md" "$DEST_ROOT/SOUL.md"
+else
+  PROJECT_HOME="$PROJECT_ROOT/hermes-home"
+  if [[ "$DEST_ROOT" != "$PROJECT_HOME" ]]; then
+    cp "$PROJECT_HOME/config.yaml" "$DEST_ROOT/config.yaml"
+    cp "$PROJECT_HOME/SYSTEM_PROMPT.md" "$DEST_ROOT/SYSTEM_PROMPT.md"
+    cp "$PROJECT_HOME/RAG_DESIGN.md" "$DEST_ROOT/RAG_DESIGN.md"
+    cp "$PROJECT_HOME/SOUL.md" "$DEST_ROOT/SOUL.md"
+  fi
+  if [[ -f "$PROJECT_HOME/.env.example" && ! -f "$DEST_ROOT/.env" ]]; then
+    cp "$PROJECT_HOME/.env.example" "$DEST_ROOT/.env"
+  fi
+fi
+
+# Runtime KB mirror: always comes from the canonical project-level KB.
+rm -rf "$DEST_ROOT/knowledge"
+mkdir -p "$DEST_ROOT/knowledge"
+cp -a "$CANONICAL_KB/." "$DEST_ROOT/knowledge/"
 
 DEST_ROOT="$DEST_ROOT" python3 - <<'PY'
 import os
 from pathlib import Path
 p = Path(os.environ['DEST_ROOT']) / 'SOUL.md'
-text = p.read_text()
+text = p.read_text(encoding='utf-8')
 extra = '''
 
 ## Runtime knowledge lookup for this deployment
@@ -43,31 +73,35 @@ extra = '''
 Не отвечай по общей части слишком абстрактно, если в `knowledge/` уже есть конкретное объяснение.
 '''
 if extra not in text:
-    p.write_text(text + extra)
+    p.write_text(text + extra, encoding='utf-8')
 PY
 
-# Минимизируем опасные/лишние toolsets в отдельном docker-home.
-export HERMES_HOME="$DEST_ROOT"
-for toolset in web browser terminal code_execution image_gen delegation cronjob homeassistant messaging tts vision moa todo clarify; do
-  "$HERMES_BIN" tools disable "$toolset" >/dev/null || true
-done
+if [[ -x "$HERMES_BIN" ]]; then
+  export HERMES_HOME="$DEST_ROOT"
+  for toolset in web browser terminal code_execution image_gen delegation cronjob homeassistant messaging tts vision moa todo clarify session_search; do
+    "$HERMES_BIN" tools disable "$toolset" >/dev/null || true
+  done
 
-# Безопасный helpdesk-режим: локальная KB + память + skills + recall прошлых сессий.
-"$HERMES_BIN" tools enable file >/dev/null || true
-"$HERMES_BIN" tools enable memory >/dev/null || true
-"$HERMES_BIN" tools enable skills >/dev/null || true
-"$HERMES_BIN" tools enable session_search >/dev/null || true
+  # Safe user-facing helpdesk mode: local KB + compact memory + skills.
+  "$HERMES_BIN" tools enable file >/dev/null || true
+  "$HERMES_BIN" tools enable memory >/dev/null || true
+  "$HERMES_BIN" tools enable skills >/dev/null || true
+else
+  echo "WARN: hermes binary not found at $HERMES_BIN; skipped toolset hardening" >&2
+fi
 
 cat <<EOF
-Prepared isolated docker home at: $DEST_ROOT
-Source profile: $SRC_PROFILE
+Prepared isolated docker/test home at: $DEST_ROOT
+Canonical knowledge source: $CANONICAL_KB
+Source profile: ${SRC_PROFILE:-project defaults}
 
 Toolset profile:
-- enabled: file, memory, skills, session_search
-- disabled: terminal, browser, web, code_execution, messaging, delegation, cronjob, homeassistant, vision, image_gen, clarify, todo, tts
+- enabled: file, memory, skills
+- disabled: terminal, browser, web, code_execution, messaging, delegation, cronjob, homeassistant, vision, image_gen, clarify, todo, tts, session_search
 
 Before real launch, verify:
 - $DEST_ROOT/.env
 - $DEST_ROOT/config.yaml
 - $DEST_ROOT/SOUL.md
+- $DEST_ROOT/knowledge/
 EOF
