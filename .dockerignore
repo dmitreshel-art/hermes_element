@@ -1,0 +1,13 @@
+# Docker build context is the repository root.
+# Exclude runtime/secrets and local-only artefacts.
+.git
+.gitignore
+**/.env
+**/auth.json
+**/auth.lock
+**/state.db
+**/models_dev_cache.json
+**/sessions
+**/logs/*.log
+**/__pycache__
+**/*.pyc

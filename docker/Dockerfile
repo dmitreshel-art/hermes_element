@@ -15,12 +15,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
-COPY hermes-agent-src /opt/hermes-agent
+# Install Hermes with Matrix + CLI support directly from upstream source.
+# This keeps the deploy bundle self-contained without committing Hermes source.
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install "/opt/hermes-agent[matrix,cli]"
+    pip install "hermes-agent[matrix,cli] @ git+https://github.com/NousResearch/hermes-agent.git"
 
 WORKDIR /data
-COPY entrypoint.sh /entrypoint.sh
+COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

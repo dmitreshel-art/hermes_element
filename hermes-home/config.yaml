@@ -241,7 +241,7 @@ matrix:
   require_mention: false
   auto_thread: true
   dm_mention_threads: false
-  # Docker/test home starts with no free-response rooms configured.
+  # Profile starts with no free-response rooms configured.
   # Add real Matrix room IDs only during deployment.
   free_response_rooms: []
 platform_toolsets:

@@ -1,93 +1,64 @@
-# Bootstrap отдельного профиля Hermes для помощника по Element
+# Развёртывание профиля Hermes Element Helpdesk
 
-## Цель
+Этот репозиторий уже содержит готовый профиль агента для Docker Compose.
 
-Создать отдельный профиль Hermes, который:
-- живёт отдельно от твоего основного ассистента;
-- отвечает только на пользовательские вопросы по Element/Matrix;
-- использует отдельную базу знаний;
-- не имеет лишних админских инструментов.
+## Основной способ запуска
 
-## Рекомендуемое имя профиля
-
-`element-helpdesk`
-
-## Шаги
-
-### 1. Создай профиль
+Используйте Docker Compose:
 
 ```bash
-/root/.hermes/venv/bin/hermes profile create element-helpdesk
+cp hermes-home/.env.example hermes-home/.env
+# заполнить hermes-home/.env
+
+docker compose -f docker/docker-compose.yml up -d --build
 ```
 
-### 2. Скопируй шаблоны
+## Где находится профиль агента
 
-```bash
-cp /root/element-hermes-assistant/profile-template/config.yaml ~/.hermes/profiles/element-helpdesk/config.yaml
-cp /root/element-hermes-assistant/profile-template/.env.example ~/.hermes/profiles/element-helpdesk/.env
+```text
+hermes-home/
 ```
 
-### 3. Отредактируй `.env`
+Эта папка монтируется в контейнер как:
 
-Заполни:
-- Matrix homeserver
-- bot user / password или access token
-- список разрешённых пользователей
-- API key провайдера модели
-- при необходимости encryption/recovery key
+```text
+/data
+```
 
-### 4. Подготовь knowledge base
+То есть внутри контейнера:
 
-Минимум заполни:
-- `/root/element-hermes-assistant/knowledge/seed-faq.md`
-- свои howto по login / notifications / device verification
-- свои troubleshooting по login / no notifications / cant decrypt
-- свои контакты эскалации
+```text
+HERMES_HOME=/data
+```
 
-### 5. Подключи системный промпт
+## Где находится база знаний
 
-Практически лучше хранить его как основной reference-файл владельца профиля:
-- `/root/element-hermes-assistant/SYSTEM_PROMPT.md`
+Единственная база знаний проекта:
 
-Варианты использования:
-1. сделать его базовым системным промптом через вашу кастомную интеграцию/обвязку;
-2. подмешивать его в startup wrapper при запуске агента;
-3. если используешь кастомный launcher для Hermes — передавать этот prompt как system override.
+```text
+hermes-home/knowledge/
+```
 
-### 6. Ограничь инструменты
+Не создавайте вторую копию `knowledge/` в корне репозитория. Если нужно изменить ответы агента, редактируйте файлы только в `hermes-home/knowledge/`.
 
-Идея для user-support профиля:
-- оставить knowledge / file / session_search / clarify при необходимости;
-- не давать terminal, browser, admin и опасные инструменты в пользовательский контур.
+## Где находится системная инструкция
 
-### 7. Настрой Matrix-канал
+Hermes использует:
 
-Вариант запуска:
-- отдельный бот-аккаунт Matrix;
-- ответы в DM;
-- отдельная комната поддержки при необходимости.
+```text
+hermes-home/SOUL.md
+```
 
-Если делаешь общую комнату, безопаснее:
-- thread-by-default;
-- не отвечать во всех комнатах подряд;
-- ограничить свободные комнаты списком support rooms.
+## Где находится RAG-дизайн
 
-## Рекомендуемая модель работы
+```text
+hermes-home/RAG_DESIGN.md
+```
 
-### MVP
-- бот отвечает только по FAQ, howto и troubleshooting;
-- при сомнениях — эскалация в ИТ;
-- без самостоятельных действий в инфраструктуре.
+## Что проверить перед production-запуском
 
-### Следующий шаг
-- собирать логи unanswered questions;
-- раз в неделю обновлять FAQ;
-- выделить отдельный owner у knowledge base.
-
-## Что проверить перед запуском
-
-- бот логинится в Matrix;
-- бот отвечает в DM;
-- бот не отвечает на посторонние вопросы вне темы Element;
-- бот не фантазирует про лимиты, политики, права и контакты;
-- бот правильно эскалирует темы шифрования/компрометации.
+1. В `hermes-home/.env` нет `CHANGE_ME`, `***`, `example.org` и других заглушек.
+2. В `hermes-home/config.yaml` выбран нужный провайдер/модель.
+3. В `hermes-home/knowledge/` нет шаблонных placeholder-ов.
+4. `docker compose -f docker/docker-compose.yml config` проходит без ошибок.
+5. Агент сначала тестируется в DM или ограниченной support-комнате.
