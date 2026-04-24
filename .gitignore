@@ -16,6 +16,9 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Docker
+docker/data/
+
 # Hermes runtime artefacts (generated on first run, not to be committed)
 **/auth.json
 **/auth.lock
@@ -27,6 +30,7 @@ __pycache__/
 **/.update_check
 **/memories/
 **/sandboxes/
+.compose.rendered
 
 # Generated reports
 reports/

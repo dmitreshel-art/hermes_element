@@ -27,7 +27,7 @@ cp "$PROJECT_ROOT/SYSTEM_PROMPT.md" "$PROFILE_DIR/SYSTEM_PROMPT.md"
 cp "$PROJECT_ROOT/RAG_DESIGN.md" "$PROFILE_DIR/RAG_DESIGN.md"
 
 # Canonical KB lives in the project-level knowledge/ directory.
-# Copy the whole tree so the profile is always built from the current project KB.
+# Copy the whole tree so the profile is not built from stale Docker test artifacts.
 rm -rf "$PROFILE_DIR/knowledge"
 mkdir -p "$PROFILE_DIR/knowledge"
 cp -a "$PROJECT_ROOT/knowledge/." "$PROFILE_DIR/knowledge/"

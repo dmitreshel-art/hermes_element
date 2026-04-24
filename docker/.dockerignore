@@ -1,0 +1,7 @@
+__pycache__
+*.pyc
+hermes-home/logs
+hermes-home/sessions
+hermes-agent-src/.git
+hermes-agent-src/.pytest_cache
+hermes-agent-src/tests
