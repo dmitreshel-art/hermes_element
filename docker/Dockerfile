@@ -20,6 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --upgrade pip setuptools wheel && \
     pip install "hermes-agent[matrix,cli] @ git+https://github.com/NousResearch/hermes-agent.git"
 
+RUN pip install faster-whisper
+
 WORKDIR /data
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

@@ -32,6 +32,21 @@ docker/data/
 **/sandboxes/
 .compose.rendered
 
+# Runtime artefacts
+**/gateway.lock
+**/gateway.pid
+**/gateway_state.json
+**/channel_directory.json
+**/cache/
+**/platforms/
+**/skills/
+**/config_test
+**/session.txt
+**/bin/
+opencode.json
+*.db-shm
+*.db-wal
+
 # Generated reports
 reports/
 **/reports/

@@ -8,6 +8,8 @@ services:
     environment:
       HERMES_HOME: /data
       TZ: UTC
+    env_file:
+      - ../hermes-home/.env
     volumes:
       - ../hermes-home:/data
     command: ["hermes", "gateway", "run"]
